@@ -1,6 +1,7 @@
 {
-  "private": true,
-  "author": "po <39471238@qq.com>",
+  "author": "jireve999",
+  "version": "1.0.0",
+  "main": "index.ts",
   "scripts": {
     "dev": "umi dev",
     "build": "umi build",
