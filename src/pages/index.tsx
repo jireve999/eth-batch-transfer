@@ -3,6 +3,7 @@ import { BrowserProvider, ethers, JsonRpcSigner } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, Space, Table } from 'antd';
+import ModalInputAddress from './components/ModalInputAddress';
 const { Header, Footer, Sider, Content } = Layout;
 
 type TableData = {
@@ -40,7 +41,7 @@ export default function HomePage() {
  
   return (
     <div>
-      <Layout style={window.innerWidth > 1000 ? { padding: '100px 200px', background: '#fff' } : {padding: '100px 20px', background: '#fff'}}>
+      <Layout style={window.innerWidth > 1000 ? { padding: '100px 200px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
         <Header>
           <Space style={{display: 'flex', justifyContent: 'space-between'}} align='center'>
             <div style={{color: '#fff', fontSize: '20px', fontWeight: 'bold'}}>Eth Batch Transfer</div>
@@ -70,9 +71,20 @@ export default function HomePage() {
           <Space>
             <Button type='primary'>Send a transaction</Button>
             <Button type='primary'>Refresh Balance</Button>
-            <Button type='primary'>Input Address</Button>
+            <ModalInputAddress onOK={(res: string[]) => {
+              console.log(res);
+              let vs: TableData[] = [];
+              for(let i = 0; i < res.length; i++) {
+                vs.push({
+                  address: res[i],
+                  balance: '-',
+                  state: '-'
+                })
+              }
+              setList(prevState => vs);
+            }}/>
             <Button onClick={() => {
-              provider?.getBalance("0x1422370cF9E7F316b669EDffA97022527E9A2011").then(res => {
+              provider?.getBalance("0xBF814Aa92970E1459F5b746dB2aE1C14B10f709").then(res => {
                 console.log(res);
               })
             }}>test</Button>

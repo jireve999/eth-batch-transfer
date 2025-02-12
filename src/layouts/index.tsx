@@ -26,9 +26,10 @@ const config = getDefaultConfig({
   chains: [{
     ...localhost,
     rpcUrls: {
-      default: {http: ['http://127.0.0.1:8545']},
+      default: {http: ['HTTP://127.0.0.1:7545']},
     }
   }, mainnet, polygon, optimism, arbitrum, base],
+  // chains: [localhost, mainnet, polygon, optimism, arbitrum, base],
   ssr: true, // If your dApp uses server side rendering (SSR)
 });
 
