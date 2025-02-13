@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserProvider, ethers, JsonRpcSigner } from 'ethers';
+import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, message, Space, Table } from 'antd';
@@ -41,6 +41,52 @@ export default function HomePage() {
       }
     }
   }, [client]);
+
+  // transaction Listening
+  const onHash = async (hash: string) => {
+    let transaction = await provider?.getTransaction(hash);
+    if (transaction == null) return;
+    if (transaction.from != signer?.address) return;
+
+    setList(prevState => {
+      let vs: TableData[] = [];
+      for(let i = 0; i < prevState.length; i++) {
+        let tableDatum = prevState[i];
+        if (tableDatum.address == transaction.to) {
+          tableDatum.state = "transaction is handling...";
+        }
+        vs.push(tableDatum);
+      }
+      return vs;
+    })
+
+    provider?.once(hash, (tx: TransactionReceipt) => {
+      setList(prevState => {
+        let vs: TableData[] = [];
+        for(let i = 0; i < prevState.length; i++) {
+          let tableDatum = prevState[i];
+          if (tableDatum.address == tx.to) {
+            if (tx.status == 1) {
+              tableDatum.state = "Transaction Credited";
+            } else {
+              tableDatum.state = "transaction is failed";
+            }
+          }
+          vs.push(tableDatum);
+        }
+        return vs;
+      })
+    })
+  }
+  useEffect(() => {
+    if (client == null || provider == null || signer == null) {
+      return;
+    }
+    let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
+    jsonRpcProvider.addListener("pending", hash => {
+      onHash(hash);
+    })
+  }, [client, provider, signer]);
 
   // balance refresh
   const upBalance = async () => {
