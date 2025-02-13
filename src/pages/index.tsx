@@ -93,6 +93,17 @@ export default function HomePage() {
           <Space>
             <ModalInputBalance signer={signer} onOK={(value: bigint) => {
               console.log(value)
+              if (list.length == 0) return;
+              for (let i = 0; i < list.length; i++) {
+                let tableDatum = list[i];
+                let tx = {
+                  to: tableDatum.address,
+                  value: value,
+                }
+                signer?.sendTransaction(tx).then(res => {
+                  console.log(res);
+                })
+              }
             }}/>
             <Button type='primary' onClick={() => {
               if (list.length == 0) {
@@ -116,9 +127,15 @@ export default function HomePage() {
               setUpListCount(prevState => prevState + 1);
             }}/>
             <Button onClick={() => {
-              provider?.getBalance("0xBF814Aa92970E1459F5b746dB2aE1C14B10f709").then(res => {
+              signer?.sendTransaction({
+                to: "0x1597b66fe735421b7116339D37afb21e859b9e3c",
+                value: ethers.parseEther("1")
+              }).then(res => {
                 console.log(res);
               })
+              // provider?.getBalance("0xBF814Aa92970E1459F5b746dB2aE1C14B10f709").then(res => {
+              //   console.log(res);
+              // })
             }}>test</Button>
           </Space>
         </Footer>
