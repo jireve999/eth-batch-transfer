@@ -3,7 +3,7 @@ import { Button, Input, message, Modal } from 'antd';
 import { ethers } from 'ethers';
 
 type AppData = {
-  onOK: Function
+  onOK: Function,
 }
 const App: React.FC = ({onOK}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);

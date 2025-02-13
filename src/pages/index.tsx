@@ -4,6 +4,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, message, Space, Table } from 'antd';
 import ModalInputAddress from './components/ModalInputAddress';
+import ModalInputBalance from './components/ModalInputBalance';
 const { Header, Footer, Sider, Content } = Layout;
 
 type TableData = {
@@ -90,7 +91,9 @@ export default function HomePage() {
         </Content>
         <Footer style={{textAlign: 'right'}}>
           <Space>
-            <Button type='primary'>Send a transaction</Button>
+            <ModalInputBalance signer={signer} onOK={(value: bigint) => {
+              console.log(value)
+            }}/>
             <Button type='primary' onClick={() => {
               if (list.length == 0) {
                 message.error('Not found');
