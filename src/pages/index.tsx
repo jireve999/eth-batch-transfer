@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserProvider, ethers, JsonRpcSigner } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
-import { Button, Layout, Space, Table } from 'antd';
+import { Button, Layout, message, Space, Table } from 'antd';
 import ModalInputAddress from './components/ModalInputAddress';
 const { Header, Footer, Sider, Content } = Layout;
 
@@ -15,6 +15,8 @@ type TableData = {
 export default function HomePage() {
   // list data
   const [list, setList] = useState<TableData[]>([]);
+  // balance refresh status
+  const [upListCount, setUpListCount] = useState<number>(1);
   // provider info
   const { data: client } = useConnectorClient<Config>();
   const [provider, setProvider] = useState<BrowserProvider>();
@@ -38,6 +40,24 @@ export default function HomePage() {
       }
     }
   }, [client]);
+
+  // balance refresh
+  const upBalance = async () => {
+    let vs:TableData[] = [];
+    for (let i = 0; i < list.length; i++) {
+      let tableDatum = list[i];
+      let wei = await provider?.getBalance(tableDatum.address);
+      tableDatum.balance = ethers.formatEther(wei == null ? 0 : wei);
+      vs.push(tableDatum);
+    }
+    return vs;
+  }
+
+  useEffect(() => {
+    upBalance().then(res => {
+      setList(prevState => res);
+    });
+  }, [upListCount]);
  
   return (
     <div>
@@ -65,12 +85,20 @@ export default function HomePage() {
               },
             ]} 
             dataSource={list}
+            pagination={false}
           />
         </Content>
         <Footer style={{textAlign: 'right'}}>
           <Space>
             <Button type='primary'>Send a transaction</Button>
-            <Button type='primary'>Refresh Balance</Button>
+            <Button type='primary' onClick={() => {
+              if (list.length == 0) {
+                message.error('Not found');
+                return;
+              }
+              setUpListCount(prevState => prevState + 1);
+              message.success('Refresh Balance Success');
+            }}>Refresh Balance</Button>
             <ModalInputAddress onOK={(res: string[]) => {
               console.log(res);
               let vs: TableData[] = [];
@@ -82,6 +110,7 @@ export default function HomePage() {
                 })
               }
               setList(prevState => vs);
+              setUpListCount(prevState => prevState + 1);
             }}/>
             <Button onClick={() => {
               provider?.getBalance("0xBF814Aa92970E1459F5b746dB2aE1C14B10f709").then(res => {
