@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt,hexZeroPad } from 'ethers';
+import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, message, Space, Table } from 'antd';
@@ -140,33 +140,16 @@ export default function HomePage() {
             <ModalInputBalance signer={signer} onOK={(value: bigint) => {
               console.log(value)
               if (list.length == 0) return;
-
-              let add:string[] = [];
-              let total:bigint = BigInt(0);
               for (let i = 0; i < list.length; i++) {
                 let tableDatum = list[i];
-                add.push(tableDatum.address);
-                total = total + value;
+                let tx = {
+                  to: tableDatum.address,
+                  value: value,
+                }
+                signer?.sendTransaction(tx).then(res => {
+                  console.log(res);
+                })
               }
-
-               // create ABI coder instance
-               let abiCoder = new ethers.AbiCoder();
-               // coder parameter
-               let encodedParams = abiCoder.encode(["address[]", "uint256"], [add, value]);
-               // Get the Method Selector (First 4 Bytes)
-               let methodSelector = ethers.keccak256(ethers.toUtf8Bytes("name(address[],uint256)")).slice(0, 10);
-               // Concatenate the Method Selector and Encoded Parameters
-               let data = ethers.concat([ethers.zeroPadValue(methodSelector, 4), encodedParams]);
-               // Send the Transaction
-               signer?.sendTransaction({
-                 to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
-                 data: data,
-                 value: total
-               }).then(res => {
-                 console.log(res);
-               }).catch(error => {
-                 console.error("Error sending transaction:", error);
-               });
             }}/>
             <Button type='primary' onClick={() => {
               if (list.length == 0) {
@@ -190,43 +173,13 @@ export default function HomePage() {
               setUpListCount(prevState => prevState + 1);
             }}/>
             <Button onClick={() => {
-              // ethers V5
-              // let abiCoder = ethers.AbiCoder.defaultAbiCoder();
-              // let s = abiCoder.encode(["address[]", "uint256"], [["0x72d0fde0C5fC49112aF6Fa779213105F4B12c4D0"], ethers.parseEther("1")]);
-              // let s1 = ethers.id("name(address[], uint256)").slice(0,10);
-              // signer?.sendTransaction({
-              //   to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
-              //   data: ethers.concat([s1,s]),
-              //   value: ethers.parseEther("1")
-              // }).then(res => {
-              //   console.log(res);
-              // })
-
-              // ethers V6
-              // https://github.com/ethers-io/ethers.js/issues/3795
-              // create ABI coder instance
-              let abiCoder = new ethers.AbiCoder();
-              // coder parameter
-              let encodedParams = abiCoder.encode(
-                ["address[]", "uint256"], 
-                [["0x72d0fde0C5fC49112aF6Fa779213105F4B12c4D0"], ethers.parseEther("1")]
-              );
-              // Get the Method Selector (First 4 Bytes)
-              let methodSelector = ethers.keccak256(ethers.toUtf8Bytes("name(address[],uint256)")).slice(0, 10);
-              // Concatenate the Method Selector and Encoded Parameters
-              let data = ethers.concat([ethers.zeroPadValue(methodSelector, 4), encodedParams]);
-              // Send the Transaction
               signer?.sendTransaction({
-                to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
-                data: data,
+                to: "0x1597b66fe735421b7116339D37afb21e859b9e3c",
                 value: ethers.parseEther("1")
               }).then(res => {
                 console.log(res);
-              }).catch(error => {
-                console.error("Error sending transaction:", error);
-              });
-
-              // provider?.getBalance("0xD4897E29A8C5A34ef07D9f241091D73A72FE0653").then(res => {
+              })
+              // provider?.getBalance("0xBF814Aa92970E1459F5b746dB2aE1C14B10f709").then(res => {
               //   console.log(res);
               // })
             }}>test</Button>
