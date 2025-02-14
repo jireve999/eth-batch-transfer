@@ -132,8 +132,7 @@ export default function HomePage() {
     let vs:TableData[] = [];
     for (let i = 0; i < list.length; i++) {
       let tableDatum = list[i];
-      let wei = await provider?.getBalance(tableDatum.address);
-      tableDatum.balance = ethers.formatEther(wei == null ? 0 : wei);
+      tableDatum.balance = await balanceOf(tableDatum.address);
       vs.push(tableDatum);
     }
     return vs;
@@ -143,6 +142,12 @@ export default function HomePage() {
     upBalance().then(res => {
       setList(prevState => res);
     });
+
+    if (signer == null) return;
+    if (contractVo == null) return;
+    balanceOf(signer?.address).then(res => {
+      setAddressBalance(res);
+    })
   }, [upListCount]);
 
   // contract available balance query
@@ -171,7 +176,7 @@ export default function HomePage() {
  
   return (
     <div>
-      <Layout style={window.innerWidth > 1000 ? { padding: '100px 200px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
+      <Layout style={window.innerWidth > 1000 ? { padding: '100px 50px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
         <Header>
           <Space style={{display: 'flex', justifyContent: 'space-between'}} align='center'>
             <div style={{color: '#fff', fontSize: '20px', fontWeight: 'bold'}}>ERC20 Batch Transfer</div>
