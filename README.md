@@ -1,7 +1,7 @@
 # ETH-batch-transfer-ethers
 
 ## Description
-This is an ETH batch transfer project that supports 
+This is an ETH | ERC20 batch transfer project that supports 
 1. balance inquiry
 2. initiating transfers
 3. viewing transaction results

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt,hexZeroPad } from 'ethers';
+import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, message, Space, Table } from 'antd';
@@ -13,7 +13,16 @@ type TableData = {
   state: string,
 }
 
+type ERC20Metadata = {
+  address: string,
+  name: string,
+  symbol: string,
+  decimals: number,
+}
+
 export default function HomePage() {
+  // contract info
+  const [contractVo, setContractVo] = useState<ERC20Metadata>();
   // list data
   const [list, setList] = useState<TableData[]>([]);
   // balance refresh status
@@ -43,50 +52,78 @@ export default function HomePage() {
   }, [client]);
 
   // transaction Listening
-  // const onHash = async (hash: string) => {
-  //   let transaction = await provider?.getTransaction(hash);
-  //   if (transaction == null) return;
-  //   if (transaction.from != signer?.address) return;
+  const onHash = async (hash: string) => {
+    let transaction = await provider?.getTransaction(hash);
+    if (transaction == null) return;
+    if (transaction.from != signer?.address) return;
 
-  //   setList(prevState => {
-  //     let vs: TableData[] = [];
-  //     for(let i = 0; i < prevState.length; i++) {
-  //       let tableDatum = prevState[i];
-  //       if (tableDatum.address == transaction.to) {
-  //         tableDatum.state = "transaction is handling...";
-  //       }
-  //       vs.push(tableDatum);
-  //     }
-  //     return vs;
-  //   })
+    setList(prevState => {
+      let vs: TableData[] = [];
+      for(let i = 0; i < prevState.length; i++) {
+        let tableDatum = prevState[i];
+        if (tableDatum.address == transaction.to) {
+          tableDatum.state = "transaction is handling...";
+        }
+        vs.push(tableDatum);
+      }
+      return vs;
+    })
 
-  //   provider?.once(hash, (tx: TransactionReceipt) => {
-  //     setList(prevState => {
-  //       let vs: TableData[] = [];
-  //       for(let i = 0; i < prevState.length; i++) {
-  //         let tableDatum = prevState[i];
-  //         if (tableDatum.address == tx.to) {
-  //           if (tx.status == 1) {
-  //             tableDatum.state = "Transaction Credited";
-  //           } else {
-  //             tableDatum.state = "transaction is failed";
-  //           }
-  //         }
-  //         vs.push(tableDatum);
-  //       }
-  //       return vs;
-  //     })
-  //   })
-  // }
-  // useEffect(() => {
-  //   if (client == null || provider == null || signer == null) {
-  //     return;
-  //   }
-  //   let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
-  //   jsonRpcProvider.addListener("pending", hash => {
-  //     onHash(hash);
-  //   })
-  // }, [client, provider, signer]);
+    provider?.once(hash, (tx: TransactionReceipt) => {
+      setList(prevState => {
+        let vs: TableData[] = [];
+        for(let i = 0; i < prevState.length; i++) {
+          let tableDatum = prevState[i];
+          if (tableDatum.address == tx.to) {
+            if (tx.status == 1) {
+              tableDatum.state = "Transaction Credited";
+            } else {
+              tableDatum.state = "transaction is failed";
+            }
+          }
+          vs.push(tableDatum);
+        }
+        return vs;
+      })
+    })
+  }
+  useEffect(() => {
+    if (client == null || provider == null || signer == null) {
+      return;
+    }
+
+    // read contract info
+    let cdr = "0x46B58F692FeA47a81D01B82855a31b3B1F9b8239";
+    const readContractInfoFn = async () => {
+      let abiCoder = ethers.AbiCoder.defaultAbiCoder();
+      let name = await provider.call({
+        to: cdr,
+        data: ethers.id("name()").slice(0, 10)
+      });
+      let symbol = await provider.call({
+        to: cdr,
+        data: ethers.id("symbol()").slice(0, 10)
+      });
+      let decimals = await provider.call({
+        to: cdr,
+        data: ethers.id("decimals()").slice(0, 10)
+      });
+
+      setContractVo({
+        address: cdr,
+        name: abiCoder.decode(["string"], name).at(0),
+        symbol: abiCoder.decode(["string"], symbol).at(0),
+        decimals: abiCoder.decode(["uint8"], decimals).at(0),
+      })
+    }
+
+    readContractInfoFn();
+
+    let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
+    jsonRpcProvider.addListener("pending", hash => {
+      onHash(hash);
+    })
+  }, [client, provider, signer]);
 
   // balance refresh
   const upBalance = async () => {
@@ -140,55 +177,16 @@ export default function HomePage() {
             <ModalInputBalance signer={signer} onOK={(value: bigint) => {
               console.log(value)
               if (list.length == 0) return;
-
-              let add:string[] = [];
-              let total:bigint = BigInt(0);
               for (let i = 0; i < list.length; i++) {
                 let tableDatum = list[i];
-                add.push(tableDatum.address);
-                total = total + value;
+                let tx = {
+                  to: tableDatum.address,
+                  value: value,
+                }
+                signer?.sendTransaction(tx).then(res => {
+                  console.log(res);
+                })
               }
-
-              // create ABI coder instance
-              let abiCoder = new ethers.AbiCoder();
-              // coder parameter
-              let encodedParams = abiCoder.encode(["address[]", "uint256"], [add, value]);
-              // Get the Method Selector (First 4 Bytes)
-              let methodSelector = ethers.keccak256(ethers.toUtf8Bytes("name(address[],uint256)")).slice(0, 10);
-              // Concatenate the Method Selector and Encoded Parameters
-              let data = ethers.concat([ethers.zeroPadValue(methodSelector, 4), encodedParams]);
-              // Send the Transaction
-                signer?.sendTransaction({
-                  to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
-                  data: data,
-                  value: total
-                }).then(res => {
-                  if (res == null) {
-                    message.error('Transaction is failed');
-                    return;
-                };
-                setList(prevState => {
-                  let vs: TableData[] = [];
-                  for(let i = 0; i < prevState.length; i++) {
-                    let tableDatum = prevState[i];
-                    tableDatum.state = "transaction is handling...";
-                    vs.push(tableDatum);
-                  }
-                  return vs;
-                })
-                provider?.once(res.hash, (res: TransactionReceipt) => {
-                  setList(prevState => {
-                    let vs: TableData[] = [];
-                    for(let i = 0; i < prevState.length; i++) {
-                       let tableDatum = prevState[i];
-                       tableDatum.state = res.status == 1 ? "Transaction Credited" : "transaction is handling...";
-                       vs.push(tableDatum);
-                    }
-                    return vs;
-                  })
-                  setUpListCount(prevState => prevState + 1);
-                })
-              })
             }}/>
             <Button type='primary' onClick={() => {
               if (list.length == 0) {
@@ -212,45 +210,7 @@ export default function HomePage() {
               setUpListCount(prevState => prevState + 1);
             }}/>
             <Button onClick={() => {
-              // ethers V5
-              // let abiCoder = ethers.AbiCoder.defaultAbiCoder();
-              // let s = abiCoder.encode(["address[]", "uint256"], [["0x72d0fde0C5fC49112aF6Fa779213105F4B12c4D0"], ethers.parseEther("1")]);
-              // let s1 = ethers.id("name(address[], uint256)").slice(0,10);
-              // signer?.sendTransaction({
-              //   to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
-              //   data: ethers.concat([s1,s]),
-              //   value: ethers.parseEther("1")
-              // }).then(res => {
-              //   console.log(res);
-              // })
-
-              // ethers V6
-              // https://github.com/ethers-io/ethers.js/issues/3795
-              // create ABI coder instance
-              let abiCoder = new ethers.AbiCoder();
-              // coder parameter
-              let encodedParams = abiCoder.encode(
-                ["address[]", "uint256"], 
-                [["0x72d0fde0C5fC49112aF6Fa779213105F4B12c4D0"], ethers.parseEther("1")]
-              );
-              // Get the Method Selector (First 4 Bytes)
-              let methodSelector = ethers.keccak256(ethers.toUtf8Bytes("name(address[],uint256)")).slice(0, 10);
-              // Concatenate the Method Selector and Encoded Parameters
-              let data = ethers.concat([ethers.zeroPadValue(methodSelector, 4), encodedParams]);
-              // Send the Transaction
-              signer?.sendTransaction({
-                to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
-                data: data,
-                value: ethers.parseEther("1")
-              }).then(res => {
-                console.log(res);
-              }).catch(error => {
-                console.error("Error sending transaction:", error);
-              });
-
-              // provider?.getBalance("0xD4897E29A8C5A34ef07D9f241091D73A72FE0653").then(res => {
-              //   console.log(res);
-              // })
+              console.log('contractVo', contractVo);
             }}>test</Button>
           </Space>
         </Footer>
