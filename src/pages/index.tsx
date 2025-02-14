@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
-import { Button, Layout, message, Space, Table } from 'antd';
+import { Button, Divider, Layout, message, Space, Table } from 'antd';
 import ModalInputAddress from './components/ModalInputAddress';
 import ModalInputBalance from './components/ModalInputBalance';
 const { Header, Footer, Sider, Content } = Layout;
@@ -23,6 +23,8 @@ type ERC20Metadata = {
 export default function HomePage() {
   // contract info
   const [contractVo, setContractVo] = useState<ERC20Metadata>();
+  // available balance of current connected account
+  const [addressBalance, setAddressBalance] = useState<string>();
   // list data
   const [list, setList] = useState<TableData[]>([]);
   // balance refresh status
@@ -142,13 +144,37 @@ export default function HomePage() {
       setList(prevState => res);
     });
   }, [upListCount]);
+
+  // contract available balance query
+  const balanceOf = async (address: string) => {
+    let abiCoder = ethers.AbiCoder.defaultAbiCoder();
+    let s = ethers.id("balanceOf(address)").slice(0,10);
+    let s1 = abiCoder.encode(["address"], [address]);
+    let s2 = await provider?.call({
+      to: contractVo?.address,
+      data: ethers.concat([s, s1]),
+    });
+    if (s2 == null) {
+      return '-';
+    }
+    return ethers.formatUnits(abiCoder.decode(["uint256"], s2).at(0), contractVo?.decimals) + " " + contractVo?.symbol;
+  }
+
+  useEffect(() => {
+    if (contractVo == null) return;
+    if (signer == null) return;
+
+    balanceOf(signer?.address).then(res => {
+      setAddressBalance(res);
+    })
+  }, [signer, contractVo]);
  
   return (
     <div>
       <Layout style={window.innerWidth > 1000 ? { padding: '100px 200px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
         <Header>
           <Space style={{display: 'flex', justifyContent: 'space-between'}} align='center'>
-            <div style={{color: '#fff', fontSize: '20px', fontWeight: 'bold'}}>Eth Batch Transfer</div>
+            <div style={{color: '#fff', fontSize: '20px', fontWeight: 'bold'}}>ERC20 Batch Transfer</div>
             <ConnectButton />
           </Space>
         </Header>
@@ -172,47 +198,60 @@ export default function HomePage() {
             pagination={false}
           />
         </Content>
-        <Footer style={{textAlign: 'right'}}>
+        <Footer style={{display: 'inline-block'}}>
           <Space>
-            <ModalInputBalance signer={signer} onOK={(value: bigint) => {
-              console.log(value)
-              if (list.length == 0) return;
-              for (let i = 0; i < list.length; i++) {
-                let tableDatum = list[i];
-                let tx = {
-                  to: tableDatum.address,
-                  value: value,
-                }
-                signer?.sendTransaction(tx).then(res => {
-                  console.log(res);
-                })
-              }
-            }}/>
-            <Button type='primary' onClick={() => {
-              if (list.length == 0) {
-                message.error('Not found');
-                return;
-              }
-              setUpListCount(prevState => prevState + 1);
-              message.success('Refresh Balance Success');
-            }}>Refresh Balance</Button>
-            <ModalInputAddress onOK={(res: string[]) => {
-              console.log(res);
-              let vs: TableData[] = [];
-              for(let i = 0; i < res.length; i++) {
-                vs.push({
-                  address: res[i],
-                  balance: '-',
-                  state: '-'
-                })
-              }
-              setList(prevState => vs);
-              setUpListCount(prevState => prevState + 1);
-            }}/>
-            <Button onClick={() => {
-              console.log('contractVo', contractVo);
-            }}>test</Button>
+            <Space>
+              <div style={{fontWeight: 'bold'}}>Contract address: </div>
+              <div>{contractVo?.address}</div>
+            </Space>
+            <Space>
+              <div style={{fontWeight: 'bold'}}>Available Balance: </div>
+              <div>{addressBalance}</div>
+            </Space>
           </Space>
+          <Divider />
+          <div style={{textAlign: 'right'}}>
+            <Space>
+              <ModalInputBalance signer={signer} onOK={(value: bigint) => {
+                console.log(value)
+                if (list.length == 0) return;
+                for (let i = 0; i < list.length; i++) {
+                  let tableDatum = list[i];
+                  let tx = {
+                    to: tableDatum.address,
+                    value: value,
+                  }
+                  signer?.sendTransaction(tx).then(res => {
+                    console.log(res);
+                  })
+                }
+              }}/>
+              <Button type='primary' onClick={() => {
+                if (list.length == 0) {
+                  message.error('Not found');
+                  return;
+                }
+                setUpListCount(prevState => prevState + 1);
+                message.success('Refresh Balance Success');
+              }}>Refresh Balance</Button>
+              <ModalInputAddress onOK={(res: string[]) => {
+                console.log(res);
+                let vs: TableData[] = [];
+                for(let i = 0; i < res.length; i++) {
+                  vs.push({
+                    address: res[i],
+                    balance: '-',
+                    state: '-'
+                  })
+                }
+                setList(prevState => vs);
+                setUpListCount(prevState => prevState + 1);
+              }}/>
+              <Button onClick={() => {
+                console.log('contractVo', contractVo);
+              }}>test</Button>
+            </Space>
+          </div>
         </Footer>
       </Layout>
     </div>
