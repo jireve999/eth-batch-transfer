@@ -43,50 +43,50 @@ export default function HomePage() {
   }, [client]);
 
   // transaction Listening
-  const onHash = async (hash: string) => {
-    let transaction = await provider?.getTransaction(hash);
-    if (transaction == null) return;
-    if (transaction.from != signer?.address) return;
+  // const onHash = async (hash: string) => {
+  //   let transaction = await provider?.getTransaction(hash);
+  //   if (transaction == null) return;
+  //   if (transaction.from != signer?.address) return;
 
-    setList(prevState => {
-      let vs: TableData[] = [];
-      for(let i = 0; i < prevState.length; i++) {
-        let tableDatum = prevState[i];
-        if (tableDatum.address == transaction.to) {
-          tableDatum.state = "transaction is handling...";
-        }
-        vs.push(tableDatum);
-      }
-      return vs;
-    })
+  //   setList(prevState => {
+  //     let vs: TableData[] = [];
+  //     for(let i = 0; i < prevState.length; i++) {
+  //       let tableDatum = prevState[i];
+  //       if (tableDatum.address == transaction.to) {
+  //         tableDatum.state = "transaction is handling...";
+  //       }
+  //       vs.push(tableDatum);
+  //     }
+  //     return vs;
+  //   })
 
-    provider?.once(hash, (tx: TransactionReceipt) => {
-      setList(prevState => {
-        let vs: TableData[] = [];
-        for(let i = 0; i < prevState.length; i++) {
-          let tableDatum = prevState[i];
-          if (tableDatum.address == tx.to) {
-            if (tx.status == 1) {
-              tableDatum.state = "Transaction Credited";
-            } else {
-              tableDatum.state = "transaction is failed";
-            }
-          }
-          vs.push(tableDatum);
-        }
-        return vs;
-      })
-    })
-  }
-  useEffect(() => {
-    if (client == null || provider == null || signer == null) {
-      return;
-    }
-    let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
-    jsonRpcProvider.addListener("pending", hash => {
-      onHash(hash);
-    })
-  }, [client, provider, signer]);
+  //   provider?.once(hash, (tx: TransactionReceipt) => {
+  //     setList(prevState => {
+  //       let vs: TableData[] = [];
+  //       for(let i = 0; i < prevState.length; i++) {
+  //         let tableDatum = prevState[i];
+  //         if (tableDatum.address == tx.to) {
+  //           if (tx.status == 1) {
+  //             tableDatum.state = "Transaction Credited";
+  //           } else {
+  //             tableDatum.state = "transaction is failed";
+  //           }
+  //         }
+  //         vs.push(tableDatum);
+  //       }
+  //       return vs;
+  //     })
+  //   })
+  // }
+  // useEffect(() => {
+  //   if (client == null || provider == null || signer == null) {
+  //     return;
+  //   }
+  //   let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
+  //   jsonRpcProvider.addListener("pending", hash => {
+  //     onHash(hash);
+  //   })
+  // }, [client, provider, signer]);
 
   // balance refresh
   const upBalance = async () => {
@@ -149,24 +149,46 @@ export default function HomePage() {
                 total = total + value;
               }
 
-               // create ABI coder instance
-               let abiCoder = new ethers.AbiCoder();
-               // coder parameter
-               let encodedParams = abiCoder.encode(["address[]", "uint256"], [add, value]);
-               // Get the Method Selector (First 4 Bytes)
-               let methodSelector = ethers.keccak256(ethers.toUtf8Bytes("name(address[],uint256)")).slice(0, 10);
-               // Concatenate the Method Selector and Encoded Parameters
-               let data = ethers.concat([ethers.zeroPadValue(methodSelector, 4), encodedParams]);
-               // Send the Transaction
-               signer?.sendTransaction({
-                 to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
-                 data: data,
-                 value: total
-               }).then(res => {
-                 console.log(res);
-               }).catch(error => {
-                 console.error("Error sending transaction:", error);
-               });
+              // create ABI coder instance
+              let abiCoder = new ethers.AbiCoder();
+              // coder parameter
+              let encodedParams = abiCoder.encode(["address[]", "uint256"], [add, value]);
+              // Get the Method Selector (First 4 Bytes)
+              let methodSelector = ethers.keccak256(ethers.toUtf8Bytes("name(address[],uint256)")).slice(0, 10);
+              // Concatenate the Method Selector and Encoded Parameters
+              let data = ethers.concat([ethers.zeroPadValue(methodSelector, 4), encodedParams]);
+              // Send the Transaction
+                signer?.sendTransaction({
+                  to: "0xFc042fAFD5788c45442DA45492ac6BB7FF4E81E0",
+                  data: data,
+                  value: total
+                }).then(res => {
+                  if (res == null) {
+                    message.error('Transaction is failed');
+                    return;
+                };
+                setList(prevState => {
+                  let vs: TableData[] = [];
+                  for(let i = 0; i < prevState.length; i++) {
+                    let tableDatum = prevState[i];
+                    tableDatum.state = "transaction is handling...";
+                    vs.push(tableDatum);
+                  }
+                  return vs;
+                })
+                provider?.once(res.hash, (res: TransactionReceipt) => {
+                  setList(prevState => {
+                    let vs: TableData[] = [];
+                    for(let i = 0; i < prevState.length; i++) {
+                       let tableDatum = prevState[i];
+                       tableDatum.state = res.status == 1 ? "Transaction Credited" : "transaction is handling...";
+                       vs.push(tableDatum);
+                    }
+                    return vs;
+                  })
+                  setUpListCount(prevState => prevState + 1);
+                })
+              })
             }}/>
             <Button type='primary' onClick={() => {
               if (list.length == 0) {
