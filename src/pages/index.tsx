@@ -4,7 +4,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Divider, Layout, message, Space, Table } from 'antd';
 import ModalInputAddress from './components/ModalInputAddress';
-import ModalInputBalance from './components/ModalInputBalance';
+import ModalInputBalanceERC20 from './components/ModalInputBalanceERC20';
 const { Header, Footer, Sider, Content } = Layout;
 
 type TableData = {
@@ -217,20 +217,32 @@ export default function HomePage() {
           <Divider />
           <div style={{textAlign: 'right'}}>
             <Space>
-              <ModalInputBalance signer={signer} onOK={(value: bigint) => {
-                console.log(value)
-                if (list.length == 0) return;
-                for (let i = 0; i < list.length; i++) {
-                  let tableDatum = list[i];
-                  let tx = {
-                    to: tableDatum.address,
-                    value: value,
+              <ModalInputBalanceERC20
+                signer={signer}
+                onOK={(value: bigint) => {
+                  console.log(value)
+                  if (list.length == 0) return;
+
+                  let abiCoder = new ethers.AbiCoder();
+                  let methodSelector = ethers.id("transfer(address,uint256)").slice(0, 10);
+                 
+                  for (let i = 0; i < list.length; i++) {
+                    let tableDatum = list[i];
+                    let encodedParams = abiCoder.encode(["address", "uint256"], [tableDatum.address, ethers.parseUnits(String(value), contractVo?.decimals)]);
+                    let data = ethers.concat([methodSelector, encodedParams]);
+  
+                    signer?.sendTransaction({
+                      to: contractVo?.address,
+                      data: data
+                    }).then(res => {
+                      console.log(res);
+                    }).catch(error => {
+                      console.error("Error sending transaction:", error);
+                    });
                   }
-                  signer?.sendTransaction(tx).then(res => {
-                    console.log(res);
-                  })
-                }
-              }}/>
+                }}
+                balanceOf={balanceOf}
+              />
               <Button type='primary' onClick={() => {
                 if (list.length == 0) {
                   message.error('Not found');
@@ -253,7 +265,20 @@ export default function HomePage() {
                 setUpListCount(prevState => prevState + 1);
               }}/>
               <Button onClick={() => {
-                console.log('contractVo', contractVo);
+                let abiCoder = new ethers.AbiCoder();
+                console.log(abiCoder)
+                let encodedParams = abiCoder.encode(["address", "uint256"], ["0x72d0fde0C5fC49112aF6Fa779213105F4B12c4D0", ethers.parseUnits("1", 18)]);
+                let methodSelector = ethers.id("transfer(address,uint256)").slice(0, 10);
+                let data = ethers.concat([methodSelector, encodedParams]);
+
+                signer?.sendTransaction({
+                  to: contractVo?.address,
+                  data: data
+                }).then(res => {
+                  console.log(res);
+                }).catch(error => {
+                  console.error("Error sending transaction:", error);
+                });
               }}>test</Button>
             </Space>
           </div>
