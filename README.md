@@ -6,11 +6,16 @@ I.ETH | ERC20 batch transfer
 1. balance inquiry
 2. initiating transfers
 3. viewing transaction results
+ETH
+![Project Screenshot](docs/ETH.png)
+ERC20
+![Project Screenshot](docs/ERC20.png)
 
 II.HD Wallet Management
 1. HD wallet generation
 2. HD wallet balance inquiry
 3. HD wallet address and private key shown
+![Project Screenshot](docs/HDWallet.png)
 
 ## Tech Stack
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
