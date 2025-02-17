@@ -84,11 +84,6 @@ export default function HomePage() {
     }
 
     readContractInfoFn();
-
-    let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
-    // jsonRpcProvider.addListener("pending", hash => {
-    //   onHash(hash);
-    // })
   }, [client, provider, signer]);
 
   // balance refresh
