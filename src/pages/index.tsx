@@ -10,7 +10,7 @@ const { Header, Footer, Sider, Content } = Layout;
 type TableData = {
   address: string,
   balance: string, 
-  state: string,
+  state: string | React.ReactNode,
 }
 
 type ERC20Metadata = {
@@ -53,42 +53,6 @@ export default function HomePage() {
     }
   }, [client]);
 
-  // transaction Listening
-  const onHash = async (hash: string) => {
-    let transaction = await provider?.getTransaction(hash);
-    if (transaction == null) return;
-    if (transaction.from != signer?.address) return;
-
-    setList(prevState => {
-      let vs: TableData[] = [];
-      for(let i = 0; i < prevState.length; i++) {
-        let tableDatum = prevState[i];
-        if (tableDatum.address == transaction.to) {
-          tableDatum.state = "transaction is handling...";
-        }
-        vs.push(tableDatum);
-      }
-      return vs;
-    })
-
-    provider?.once(hash, (tx: TransactionReceipt) => {
-      setList(prevState => {
-        let vs: TableData[] = [];
-        for(let i = 0; i < prevState.length; i++) {
-          let tableDatum = prevState[i];
-          if (tableDatum.address == tx.to) {
-            if (tx.status == 1) {
-              tableDatum.state = "Transaction Credited";
-            } else {
-              tableDatum.state = "transaction is failed";
-            }
-          }
-          vs.push(tableDatum);
-        }
-        return vs;
-      })
-    })
-  }
   useEffect(() => {
     if (client == null || provider == null || signer == null) {
       return;
@@ -122,9 +86,9 @@ export default function HomePage() {
     readContractInfoFn();
 
     let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
-    jsonRpcProvider.addListener("pending", hash => {
-      onHash(hash);
-    })
+    // jsonRpcProvider.addListener("pending", hash => {
+    //   onHash(hash);
+    // })
   }, [client, provider, signer]);
 
   // balance refresh
@@ -235,7 +199,35 @@ export default function HomePage() {
                       to: contractVo?.address,
                       data: data
                     }).then(res => {
-                      console.log(res);
+                      setList(prevState => {
+                        let vs: TableData[] = [];
+                        for (let i = 0; i < prevState.length; i++) {
+                          let tableDatum1 = prevState[i];
+                          if (tableDatum1.address == tableDatum.address) {
+                            tableDatum1.state = <div style={{ color: 'orange'}}>Transaction Verifying...</div>
+                          }
+                          vs.push(tableDatum1);
+                        }
+                        return vs;
+                      })
+                      provider?.once(res.hash, (tr: TransactionReceipt) => {
+                        setList(prevState => {
+                          let vs: TableData[] = [];
+                          for (let i = 0; i < prevState.length; i++) {
+                            let tableDatum1 = prevState[i];
+                            if (tableDatum1.address == tableDatum.address) {
+                              if (tr.status == 1) {
+                                tableDatum1.state = <div style={{ color: 'green'}}>Transaction Success</div>
+                              } else {
+                                tableDatum1.state = <div style={{ color: 'red'}}>Transaction Failed</div>
+                              }
+                            }
+                            vs.push(tableDatum1);
+                          }
+                          return vs;
+                        })
+                        setUpListCount(prevState => prevState + 1);
+                      })
                     }).catch(error => {
                       console.error("Error sending transaction:", error);
                     });
