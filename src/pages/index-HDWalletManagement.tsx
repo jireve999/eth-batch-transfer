@@ -89,7 +89,7 @@ export default function HomePage() {
  
   return (
     <div>
-      <Layout style={window.innerWidth > 1000 ? { padding: '100px 100px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
+      <Layout style={window.innerWidth > 1000 ? { padding: '100px 200px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
         <Header>
           <Space style={{display: 'flex', justifyContent: 'space-between'}} align='center'>
             <div style={{color: '#fff', fontSize: '20px', fontWeight: 'bold'}}>HD Wallet Management</div>

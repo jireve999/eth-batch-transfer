@@ -1,13 +1,16 @@
 # ETH-batch-transfer-ethers
 
 ## Description
-This is an 
-I.ETH | ERC20 batch transfer project that supports 
+This is an project that supports:
+I.ETH | ERC20 batch transfer 
 1. balance inquiry
 2. initiating transfers
 3. viewing transaction results
 
 II.HD Wallet Management
+1. HD wallet generation
+2. HD wallet balance inquiry
+3. HD wallet address and private key shown
 
 ## Tech Stack
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)

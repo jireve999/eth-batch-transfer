@@ -55,6 +55,7 @@ const App: React.FC<AppData> = ({onOK}) => {
             label="Generate Index"
             name={'index'}
             extra={'Initial Index'}
+            labelCol={{ style: { width: '150px' } }}
           >
             <Input 
               defaultValue={index}
