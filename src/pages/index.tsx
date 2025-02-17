@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt } from 'ethers';
+import { BrowserProvider, ethers, HDNodeWallet, JsonRpcSigner, TransactionReceipt } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, message, Space, Table } from 'antd';
-import ModalInputAddress from './components/ModalInputAddress';
-import ModalInputBalance from './components/ModalInputBalance';
+import ModalInputWallet from './components/ModalInputWallet';
 const { Header, Footer, Sider, Content } = Layout;
 
 type TableData = {
@@ -12,7 +11,7 @@ type TableData = {
   balance: string, 
   count: string,
   index: string,
-  state: string,
+  wallet: ethers.HDNodeWallet,
 }
 
 type HDVo = {
@@ -51,42 +50,6 @@ export default function HomePage() {
     }
   }, [client]);
 
-  // transaction Listening
-  const onHash = async (hash: string) => {
-    let transaction = await provider?.getTransaction(hash);
-    if (transaction == null) return;
-    if (transaction.from != signer?.address) return;
-
-    setList(prevState => {
-      let vs: TableData[] = [];
-      for(let i = 0; i < prevState.length; i++) {
-        let tableDatum = prevState[i];
-        if (tableDatum.address == transaction.to) {
-          tableDatum.state = "transaction is handling...";
-        }
-        vs.push(tableDatum);
-      }
-      return vs;
-    })
-
-    provider?.once(hash, (tx: TransactionReceipt) => {
-      setList(prevState => {
-        let vs: TableData[] = [];
-        for(let i = 0; i < prevState.length; i++) {
-          let tableDatum = prevState[i];
-          if (tableDatum.address == tx.to) {
-            if (tx.status == 1) {
-              tableDatum.state = "Transaction Credited";
-            } else {
-              tableDatum.state = "transaction is failed";
-            }
-          }
-          vs.push(tableDatum);
-        }
-        return vs;
-      })
-    })
-  }
   useEffect(() => {
     if (client == null || provider == null || signer == null) {
       return;
@@ -95,11 +58,6 @@ export default function HomePage() {
     setHdVo({
       mnemonic: "basic armor style cause undo peace tilt ticket join empty market harvest",
       path: "m/44'/60'/0'/0/"
-    })
-
-    let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
-    jsonRpcProvider.addListener("pending", hash => {
-      onHash(hash);
     })
   }, [client, provider, signer]);
 
@@ -171,7 +129,28 @@ export default function HomePage() {
               <div>{hdVo?.path}<span style={{color:'green'}}>index</span></div>
             </Space>
             <Space>
-              <Button type={'primary'}>Generate Wallet</Button>
+              <ModalInputWallet onOK={(count: bigint, index: bigint) => {
+                if (hdVo == null) return;
+                let mnemonic = ethers.Mnemonic.fromPhrase(hdVo?.mnemonic);
+                let computedSeed = mnemonic.computeSeed();
+
+                let hdNodeWallet = ethers.HDNodeWallet.fromSeed(computedSeed);
+
+                let vs: TableData[] = [];
+                for (let i = 0; i < count; i++) {
+                  let start = index + ethers.getUint(i);
+                  let derivePath = hdNodeWallet.derivePath(hdVo.path + start);
+
+                  vs.push({
+                    address: derivePath.address,
+                    balance: '-',
+                    count: '-',
+                    index: String(start),
+                    wallet: derivePath
+                  })
+                }
+                setList(prevState => vs);
+              }}/>
             </Space>
         </Footer>
       </Layout>
