@@ -3,10 +3,9 @@ import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt } from 'ethe
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, message, Space, Table } from 'antd';
-import ModalInputAddress from './components/ModalInputAddress';
-import ModalInputBalance from './components/ModalInputBalance';
 import ModalInputContent from './components/ModalInputContent';
 const { Header, Footer, Sider, Content } = Layout;
+import abis from "./abis/tweet.json";
 
 type TableData = {
   address: string,
@@ -24,6 +23,10 @@ export default function HomePage() {
   const [provider, setProvider] = useState<BrowserProvider>();
   const [signer, setSigner] = useState<JsonRpcSigner>();
 
+  // contract information
+  const [contract, setContract] = useState<ethers.Contract>();
+
+  // launch information
   useEffect(() => {
     if (client == null) {
       return;
@@ -43,69 +46,46 @@ export default function HomePage() {
     }
   }, [client]);
 
-  // transaction Listening
-  const onHash = async (hash: string) => {
-    let transaction = await provider?.getTransaction(hash);
-    if (transaction == null) return;
-    if (transaction.from != signer?.address) return;
-
-    setList(prevState => {
-      let vs: TableData[] = [];
-      for(let i = 0; i < prevState.length; i++) {
-        let tableDatum = prevState[i];
-        if (tableDatum.address == transaction.to) {
-          tableDatum.state = "transaction is handling...";
-        }
-        vs.push(tableDatum);
-      }
-      return vs;
-    })
-
-    provider?.once(hash, (tx: TransactionReceipt) => {
-      setList(prevState => {
-        let vs: TableData[] = [];
-        for(let i = 0; i < prevState.length; i++) {
-          let tableDatum = prevState[i];
-          if (tableDatum.address == tx.to) {
-            if (tx.status == 1) {
-              tableDatum.state = "Transaction Credited";
-            } else {
-              tableDatum.state = "transaction is failed";
-            }
-          }
-          vs.push(tableDatum);
-        }
-        return vs;
-      })
-    })
-  }
   useEffect(() => {
     if (client == null || provider == null || signer == null) {
       return;
     }
-    let jsonRpcProvider = new ethers.JsonRpcProvider(client.chain.rpcUrls.default.http[0]);
-    jsonRpcProvider.addListener("pending", hash => {
-      onHash(hash);
-    })
+
+    let contract = new ethers.Contract("0x1a96b15E992330435d6759f87136a1c85cFf62Fc", abis, signer);
+    setContract(contract);
+
   }, [client, provider, signer]);
 
-  // balance refresh
-  const upBalance = async () => {
-    let vs:TableData[] = [];
-    for (let i = 0; i < list.length; i++) {
-      let tableDatum = list[i];
-      let wei = await provider?.getBalance(tableDatum.address);
-      tableDatum.balance = ethers.formatEther(wei == null ? 0 : wei);
-      vs.push(tableDatum);
+  // loading list
+  const loadTweetList = async () => {
+    if (contract == null) return [];
+    let get = contract?.getFunction("get(uint256, uint256)");
+    let newVar: ethers.Result[] = await get(ethers.getUint(1), ethers.getUint(10));
+
+    let vs: TableData[] = [];
+    for (let i = 0; i < newVar.length; i++) {
+      let result = newVar[i];
+      vs.push({
+        address: result.at(0),
+        content: result.at(1),
+        time: new Date(ethers.getNumber(result.at(2))).toLocaleString(),
+      });
     }
     return vs;
   }
 
   useEffect(() => {
-    upBalance().then(res => {
-      setList(prevState => res);
-    });
+    // loadTweetList().then(res => {
+    //   setList(prevState => res);
+    // });
   }, [upListCount]);
+
+  useEffect(() => {
+    if (contract == null) return;
+    loadTweetList().then(res => {
+      setList(prevState => res.reverse());
+    })
+  }, [contract]);
  
   return (
     <div>
