@@ -16,22 +16,24 @@ I. ETH | ERC20 batch transfer
 3. viewing transaction results
 
 ETH
-<img src="docs/ETH.png" width="200" alt="ETH">
+<img src="docs/ETH.png" width="400" alt="ETH">
+
 ERC20
-<img src="docs/ERC20.png" width="200" alt="ERC20">
+<img src="docs/ERC20.png" width="400" alt="ERC20">
 
 II. HD Wallet Management
 1. HD wallet generation
 2. HD wallet balance inquiry
 3. HD wallet address and private key shown
-<img src="docs/HDWallet.png" width="200" alt="HDWallet">
+<img src="docs/HDWallet.png" width="400" alt="HDWallet">
 
 III. Blockchain Tweet System
 1. tweet contract
 2. loading tweet list
 3. listening tweet events
-<img src="docs/TWEET1.png" width="200" alt="TWEET1">
-<img src="docs/TWEET2.png" width="200" alt="TWEET2">
+
+<img src="docs/TWEET1.png" width="400" alt="TWEET1">
+<img src="docs/TWEET2.png" width="400" alt="TWEET2">
 
 ## Getting Started
 First, run the development server:
