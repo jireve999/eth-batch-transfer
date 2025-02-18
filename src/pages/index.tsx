@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt } from 'ethers';
+import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt, TransactionResponse } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
 import { Button, Layout, message, Space, Table } from 'antd';
@@ -75,9 +75,9 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    // loadTweetList().then(res => {
-    //   setList(prevState => res);
-    // });
+    loadTweetList().then(res => {
+      setList(prevState => res.reverse());
+    })
   }, [upListCount]);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function HomePage() {
  
   return (
     <div>
-      <Layout style={window.innerWidth > 1000 ? { padding: '100px 150px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
+      <Layout style={window.innerWidth > 1000 ? { padding: '100px 120px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
         <Header>
           <Space style={{display: 'flex', justifyContent: 'space-between'}} align='center'>
             <div style={{color: '#fff', fontSize: '20px', fontWeight: 'bold'}}>Blockchain Tweet System</div>
@@ -117,7 +117,25 @@ export default function HomePage() {
           />
         </Content>
         <Footer style={{textAlign: 'right'}}>
-          <ModalInputContent />
+          <ModalInputContent onOK={async(tweet: string) => {
+            let messageType = message.loading('Verifying...', -1);
+
+            try {
+              let transactionResponse: TransactionResponse = await contract?.getFunction("create(string,uint256)")(tweet, ethers.getUint(Date.now()));
+              let newVar = await transactionResponse.wait();
+              
+              if (newVar == null || newVar.status != 1) {
+                message.error("Publish failed");
+                return;
+              }
+
+              messageType();
+              message.success('Successfully published');
+              setUpListCount(prevState => prevState + 1);
+            } finally {
+              messageType();
+            }
+          }}/>
         </Footer>
       </Layout>
     </div>
