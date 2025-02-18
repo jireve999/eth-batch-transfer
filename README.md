@@ -17,6 +17,11 @@ II.HD Wallet Management
 3. HD wallet address and private key shown
 ![Project Screenshot](docs/HDWallet.png)
 
+III.Blockchain Tweet System
+1.tweet contract
+2.loading tweet list
+3.listening tweet events
+
 ## Tech Stack
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
