@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserProvider, ethers, JsonRpcSigner, TransactionReceipt, TransactionResponse } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Config, useConnectorClient } from 'wagmi';
-import { Button, Layout, message, Space, Table } from 'antd';
+import { Button, Layout, message, notification, Space, Table } from 'antd';
 import ModalInputContent from './components/ModalInputContent';
 const { Header, Footer, Sider, Content } = Layout;
 import abis from "./abis/tweet.json";
@@ -14,6 +14,7 @@ type TableData = {
 }
 
 export default function HomePage() {
+  const [api, contextHolder] = notification.useNotification();
   // list data
   const [list, setList] = useState<TableData[]>([]);
   // balance refresh status
@@ -51,7 +52,7 @@ export default function HomePage() {
       return;
     }
 
-    let contract = new ethers.Contract("0x1a96b15E992330435d6759f87136a1c85cFf62Fc", abis, signer);
+    let contract = new ethers.Contract("0x3711952A25eDB8490A395E36acD92432871F3DE9", abis, signer);
     setContract(contract);
 
   }, [client, provider, signer]);
@@ -82,6 +83,18 @@ export default function HomePage() {
 
   useEffect(() => {
     if (contract == null) return;
+
+    // "log" || contract.filter.log
+    contract.addListener("log", (address: string, str: string, time: bigint) => {
+
+      api.success({
+        message: `${address} publish a tweet`,
+      });
+      loadTweetList().then(res => {
+        setList(prevState => res.reverse());
+      })
+    })
+
     loadTweetList().then(res => {
       setList(prevState => res.reverse());
     })
@@ -89,6 +102,7 @@ export default function HomePage() {
  
   return (
     <div>
+      {contextHolder}
       <Layout style={window.innerWidth > 1000 ? { padding: '100px 120px', background: '#fff' } : {padding: '100px 0px', background: '#fff'}}>
         <Header>
           <Space style={{display: 'flex', justifyContent: 'space-between'}} align='center'>

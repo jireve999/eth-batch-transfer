@@ -9,9 +9,12 @@ contract Name {
     }
     News[] list;
 
+    event log(address add, string str, uint256 time);
+
     function create(string memory str, uint256 time) public {
         News memory s = News(msg.sender, str, time);
         list.push(s);
+        emit log(msg.sender, str, time);
     }
 
     function get(uint256 page, uint256 size) public view returns (News[] memory) {
@@ -44,7 +47,7 @@ contract Name {
     }
 }
 
-// 0x1a96b15E992330435d6759f87136a1c85cFf62Fc
+// 0x3711952A25eDB8490A395E36acD92432871F3DE9
 //create: 11 3
 //get: 1 10
 // 0:
